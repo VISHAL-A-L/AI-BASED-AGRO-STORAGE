@@ -1,102 +1,82 @@
 import pandas as pd
 import numpy as np
+import joblib
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import IsolationForest
+from sklearn.model_selection import train_test_split
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 
-# Load dataset
-def load_data():
+# ---------------- LOAD DATA ----------------
 
-    try:
-        data = pd.read_csv("sensor_data.csv")
-    except:
-        data = pd.DataFrame(columns=["temperature","humidity","gas"])
+data = pd.read_csv("sensor_data.csv")
 
-    return data
+# use only sensor columns
+X = data[["temperature","humidity","gas","motion"]]
 
+# create simple spoilage label
+data["label"] = np.where(
+    (data["temperature"] > 35) | (data["gas"] > 300),
+    1,0
+)
 
-# ---------------- Random Forest ----------------
+y = data["label"]
 
-def train_random_forest(data):
+# ---------------- RANDOM FOREST ----------------
 
-    if len(data) < 20:
-        return None
+rf = RandomForestClassifier()
 
-    X = data[['temperature','humidity','gas']]
+rf.fit(X,y)
 
-    y = []
+joblib.dump(rf,"rf_model.pkl")
 
-    for i in range(len(data)):
+print("Random Forest trained and saved")
 
-        if data['temperature'][i] > 30 or data['humidity'][i] > 75 or data['gas'][i] > 350:
-            y.append(1)
-        else:
-            y.append(0)
+# ---------------- ISOLATION FOREST ----------------
 
-    model = RandomForestClassifier()
+iso = IsolationForest(contamination=0.1)
 
-    model.fit(X,y)
+iso.fit(X)
 
-    return model
+joblib.dump(iso,"iso_model.pkl")
 
+print("Isolation Forest trained and saved")
 
-# ---------------- Isolation Forest ----------------
+# ---------------- LSTM TRAINING ----------------
 
-def train_isolation_forest(data):
+sequence_length = 5
 
-    if len(data) < 20:
-        return None
+dataset = data[["temperature","humidity","gas","motion"]].values
 
-    X = data[['temperature','humidity','gas']]
+X_lstm=[]
+y_lstm=[]
 
-    model = IsolationForest(contamination=0.1)
+for i in range(len(dataset)-sequence_length):
 
-    model.fit(X)
+    X_lstm.append(dataset[i:i+sequence_length])
+    y_lstm.append(data["label"].iloc[i+sequence_length])
 
-    return model
+X_lstm=np.array(X_lstm)
+y_lstm=np.array(y_lstm)
 
+# ---------------- BUILD LSTM MODEL ----------------
 
-# ---------------- LSTM Model ----------------
+model = Sequential()
 
-def train_lstm(data):
+model.add(LSTM(64,input_shape=(sequence_length,4)))
 
-    if len(data) < 30:
-        return None
+model.add(Dense(1,activation="sigmoid"))
 
-    X = data[['temperature','humidity','gas']].values
+model.compile(
+    optimizer="adam",
+    loss="binary_crossentropy",
+    metrics=["accuracy"]
+)
 
-    seq = 10
+model.fit(X_lstm,y_lstm,epochs=10,batch_size=16)
 
-    X_train=[]
-    y_train=[]
+model.save("onion_lstm_model.h5")
 
-    for i in range(len(X)-seq):
-
-        X_train.append(X[i:i+seq])
-
-        if X[i+seq][2] > 350:
-            y_train.append(1)
-        else:
-            y_train.append(0)
-
-    X_train=np.array(X_train)
-    y_train=np.array(y_train)
-
-    model=Sequential()
-
-    model.add(LSTM(64,return_sequences=True,input_shape=(seq,3)))
-    model.add(LSTM(32))
-    model.add(Dense(1,activation='sigmoid'))
-
-    model.compile(
-        optimizer='adam',
-        loss='binary_crossentropy',
-        metrics=['accuracy']
-    )
-
-    model.fit(X_train,y_train,epochs=10,verbose=0)
-
-    return model
+print("LSTM model trained and saved")

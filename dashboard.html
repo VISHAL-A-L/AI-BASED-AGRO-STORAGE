@@ -17,16 +17,9 @@ text-align:center;
 margin:0;
 }
 
-.logo{
-position:absolute;
-top:15px;
-left:20px;
-width:70px;
-}
-
 h1{
-margin-top:20px;
 color:#38bdf8;
+margin-top:20px;
 }
 
 .cards{
@@ -53,7 +46,7 @@ color:#22c55e;
 display:flex;
 justify-content:space-around;
 flex-wrap:wrap;
-margin-top:30px;
+margin-top:20px;
 }
 
 .ai-card{
@@ -62,19 +55,18 @@ padding:20px;
 border-radius:12px;
 width:25%;
 margin:10px;
-box-shadow:0 0 10px rgba(0,0,0,0.5);
 }
 
 canvas{
 background:white;
 border-radius:10px;
-margin-top:30px;
+margin-top:20px;
 }
 
 button{
-padding:12px 20px;
+padding:10px 20px;
 font-size:16px;
-margin:15px;
+margin-top:20px;
 border:none;
 border-radius:8px;
 background:#22c55e;
@@ -82,21 +74,12 @@ color:white;
 cursor:pointer;
 }
 
-.alert-panel{
-display:none;
+.alert{
 background:red;
-color:white;
-font-size:28px;
-padding:20px;
+padding:15px;
 margin:20px;
-border-radius:10px;
-animation:flash 1s infinite;
-}
-
-@keyframes flash{
-0%{opacity:1;}
-50%{opacity:0.3;}
-100%{opacity:1;}
+font-size:22px;
+display:none;
 }
 
 </style>
@@ -105,14 +88,10 @@ animation:flash 1s infinite;
 
 <body>
 
-<img src="logo.png" class="logo">
-
 <h1>AI Onion Storage Monitoring System</h1>
 
-<div id="alertPanel" class="alert-panel">
-
-⚠ EMERGENCY: ONION SPOILAGE RISK DETECTED ⚠
-
+<div id="alertBox" class="alert">
+⚠ Onion Spoilage Risk Detected
 </div>
 
 <div class="cards">
@@ -162,35 +141,18 @@ LSTM Prediction
 
 </div>
 
-<button onclick="downloadData()">Download Excel</button>
-
-<audio id="alarm" loop>
-<source src="ambulance.mp3" type="audio/mpeg">
-</audio>
+<button onclick="downloadExcel()">Download Excel</button>
 
 <script>
-
-/* VOICE FUNCTION */
-
-function speak(text){
-
-let msg=new SpeechSynthesisUtterance(text)
-
-msg.rate=1
-msg.pitch=1
-
-speechSynthesis.speak(msg)
-
-}
-
-/* GRAPH */
 
 let labels=[]
 let tempData=[]
 let humData=[]
 let gasData=[]
 
-let chart=new Chart(document.getElementById("chart"),{
+const ctx=document.getElementById("chart")
+
+let chart=new Chart(ctx,{
 
 type:'line',
 
@@ -220,12 +182,13 @@ fill:false
 }
 
 ]
+},
 
+options:{
+responsive:true
 }
 
 })
-
-/* FETCH DATA */
 
 function getData(){
 
@@ -238,53 +201,46 @@ fetch("/getdata")
 let t=data.temperature
 let h=data.humidity
 let g=data.gas
-let motion=data.motion
 
 document.getElementById("temp").innerHTML=t+" °C"
 document.getElementById("hum").innerHTML=h+" %"
 document.getElementById("gas").innerHTML=g
-document.getElementById("motion").innerHTML=motion==1?"Detected":"No"
+document.getElementById("motion").innerHTML=data.motion==1?"Detected":"No"
 
 document.getElementById("rf").innerHTML=data.rf_prediction
 document.getElementById("iso").innerHTML=data.iso_prediction
 document.getElementById("lstm").innerHTML=data.lstm_prediction
 
-labels.push("")
+let time=new Date().toLocaleTimeString()
+
+labels.push(time)
 
 tempData.push(t)
 humData.push(h)
 gasData.push(g)
 
+if(labels.length>20){
+
+labels.shift()
+tempData.shift()
+humData.shift()
+gasData.shift()
+
+}
+
 chart.update()
 
-let alarm=document.getElementById("alarm")
-let alertPanel=document.getElementById("alertPanel")
-
-/* AI ALERT LOGIC */
-
 if(
-
 data.rf_prediction=="Spoilage Risk" ||
-
 data.iso_prediction=="Anomaly Detected" ||
-
 data.lstm_prediction=="Future Spoilage Risk"
-
 ){
 
-alertPanel.style.display="block"
-
-alarm.play()
-
-speak("Warning. Onion spoilage risk detected")
+document.getElementById("alertBox").style.display="block"
 
 }else{
 
-alertPanel.style.display="none"
-
-alarm.pause()
-
-alarm.currentTime=0
+document.getElementById("alertBox").style.display="none"
 
 }
 
@@ -294,7 +250,7 @@ alarm.currentTime=0
 
 setInterval(getData,3000)
 
-function downloadData(){
+function downloadExcel(){
 
 window.location="/download"
 
