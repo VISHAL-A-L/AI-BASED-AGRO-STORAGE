@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>AI Onion Storage Monitoring</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+text-align:center;
+margin:0;
+}
+
+.logo{
+position:absolute;
+top:15px;
+left:20px;
+width:70px;
+}
+
+h1{
+margin-top:20px;
+color:#38bdf8;
+}
+
+.cards{
+display:flex;
+justify-content:space-around;
+flex-wrap:wrap;
+margin:20px;
+}
+
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:12px;
+width:20%;
+margin:10px;
+box-shadow:0 0 10px rgba(0,0,0,0.5);
+}
+
+.card h2{
+color:#22c55e;
+}
+
+.ai-panel{
+display:flex;
+justify-content:space-around;
+flex-wrap:wrap;
+margin-top:30px;
+}
+
+.ai-card{
+background:#1e293b;
+padding:20px;
+border-radius:12px;
+width:25%;
+margin:10px;
+box-shadow:0 0 10px rgba(0,0,0,0.5);
+}
+
+canvas{
+background:white;
+border-radius:10px;
+margin-top:30px;
+}
+
+button{
+padding:12px 20px;
+font-size:16px;
+margin:15px;
+border:none;
+border-radius:8px;
+background:#22c55e;
+color:white;
+cursor:pointer;
+}
+
+.alert-panel{
+display:none;
+background:red;
+color:white;
+font-size:28px;
+padding:20px;
+margin:20px;
+border-radius:10px;
+animation:flash 1s infinite;
+}
+
+@keyframes flash{
+0%{opacity:1;}
+50%{opacity:0.3;}
+100%{opacity:1;}
+}
+
+</style>
+
+</head>
+
+<body>
+
+<img src="logo.png" class="logo">
+
+<h1>AI Onion Storage Monitoring System</h1>
+
+<div id="alertPanel" class="alert-panel">
+
+⚠ EMERGENCY: ONION SPOILAGE RISK DETECTED ⚠
+
+</div>
+
+<div class="cards">
+
+<div class="card">
+Temperature
+<h2 id="temp">0 °C</h2>
+</div>
+
+<div class="card">
+Humidity
+<h2 id="hum">0 %</h2>
+</div>
+
+<div class="card">
+Gas
+<h2 id="gas">0</h2>
+</div>
+
+<div class="card">
+Motion
+<h2 id="motion">No</h2>
+</div>
+
+</div>
+
+<canvas id="chart" height="120"></canvas>
+
+<h2>AI Model Analysis</h2>
+
+<div class="ai-panel">
+
+<div class="ai-card">
+Random Forest
+<h3 id="rf">Waiting...</h3>
+</div>
+
+<div class="ai-card">
+Isolation Forest
+<h3 id="iso">Waiting...</h3>
+</div>
+
+<div class="ai-card">
+LSTM Prediction
+<h3 id="lstm">Waiting...</h3>
+</div>
+
+</div>
+
+<button onclick="downloadData()">Download Excel</button>
+
+<audio id="alarm" loop>
+<source src="ambulance.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+
+/* VOICE FUNCTION */
+
+function speak(text){
+
+let msg=new SpeechSynthesisUtterance(text)
+
+msg.rate=1
+msg.pitch=1
+
+speechSynthesis.speak(msg)
+
+}
+
+if(labels.length>30){
+
+labels.shift()
+tempData.shift()
+humData.shift()
+gasData.shift()
+
+}
+
+labels.push("")
+
+tempData.push(t)
+humData.push(h)
+gasData.push(g)
+
+chart.update()
+
+{
+label:"Temperature",
+data:tempData,
+borderColor:"red",
+fill:false
+},
+
+{
+label:"Humidity",
+data:humData,
+borderColor:"blue",
+fill:false
+},
+
+{
+label:"Gas",
+data:gasData,
+borderColor:"green",
+fill:false
+}
+
+]
+
+
+
+/* FETCH DATA */
+
+function getData(){
+
+fetch("/getdata")
+
+.then(res=>res.json())
+
+.then(data=>{
+
+let t=data.temperature
+let h=data.humidity
+let g=data.gas
+let motion=data.motion
+
+document.getElementById("temp").innerHTML=t+" °C"
+document.getElementById("hum").innerHTML=h+" %"
+document.getElementById("gas").innerHTML=g
+document.getElementById("motion").innerHTML=motion==1?"Detected":"No"
+
+document.getElementById("rf").innerHTML=data.rf_prediction
+document.getElementById("iso").innerHTML=data.iso_prediction
+document.getElementById("lstm").innerHTML=data.lstm_prediction
+
+labels.push("")
+
+tempData.push(t)
+humData.push(h)
+gasData.push(g)
+
+chart.update()
+
+let alarm=document.getElementById("alarm")
+let alertPanel=document.getElementById("alertPanel")
+
+/* AI ALERT LOGIC */
+
+if(
+
+data.rf_prediction=="Spoilage Risk" ||
+
+data.iso_prediction=="Anomaly Detected" ||
+
+data.lstm_prediction=="Future Spoilage Risk"
+
+){
+
+alertPanel.style.display="block"
+
+alarm.play()
+
+speak("Warning. Onion spoilage risk detected")
+
+}else{
+
+alertPanel.style.display="none"
+
+alarm.pause()
+
+alarm.currentTime=0
+
+}
+
+})
+
+}
+
+setInterval(getData,3000)
+
+function downloadData(){
+
+window.location="/download"
+
+}
+
+</script>
+
+</body>
+
+</html>

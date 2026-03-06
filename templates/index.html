@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Onion & Seed Storage Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .card { border-radius: 12px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .alert-active { border-left: 5px solid #dc3545; background-color: #fff5f5; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>🌱 AI Smart Storage Dashboard</h2>
+        <button class="btn btn-success" onclick="downloadExcel()">📊 Download Excel Report</button>
+    </div>
+
+    <div id="alert-box" class="alert alert-danger d-none alert-active" role="alert">
+        <strong>⚠️ AI ALERT:</strong> Critical temperature/gas variation detected in Onion Section!
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card p-3">
+                <h5>Storage Readings Variation</h5>
+                <div class="chart-container">
+                    <canvas id="variationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card p-3">
+                <h5>Current Status</h5>
+                <ul class="list-group list-group-flush" id="sensor-list">
+                    <li class="list-group-item d-flex justify-content-between">Onion Temp: <span id="val-temp">24.5°C</span></li>
+                    <li class="list-group-item d-flex justify-content-between">Seed Humidity: <span id="val-humid">12.2%</span></li>
+                    <li class="list-group-item d-flex justify-content-between">Gas Level: <span id="val-gas">110 ppm</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- DATA & CHART LOGIC ---
+    let sensorData = {
+        labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25'],
+        temp: [22, 23, 22.5, 24, 28, 24.5], // Variation data
+        gas: [100, 105, 102, 120, 150, 110]
+    };
+
+    const ctx = document.getElementById('variationChart').getContext('2d');
+    const myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sensorData.labels,
+            datasets: [{
+                label: 'Temperature (°C)',
+                data: sensorData.temp,
+                borderColor: '#ff6384',
+                tension: 0.3,
+                fill: false
+            }, {
+                label: 'Gas Level (ppm)',
+                data: sensorData.gas,
+                borderColor: '#36a2eb',
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // --- ALERT LOGIC ---
+    function checkAIAlerts(latestTemp) {
+        if (latestTemp > 25) { // Threshold example
+            document.getElementById('alert-box').classList.remove('d-none');
+        }
+    }
+    checkAIAlerts(28); // Triggering test alert
+
+    // --- EXCEL DOWNLOAD LOGIC ---
+    function downloadExcel() {
+        // Prepare data for Excel
+        let rows = [["Timestamp", "Temperature (C)", "Gas Level (ppm)"]];
+        sensorData.labels.forEach((label, i) => {
+            rows.push([label, sensorData.temp[i], sensorData.gas[i]]);
+        });
+
+        // Use SheetJS to create and download
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Storage_Data");
+        XLSX.writeFile(workbook, "Storage_Monitoring_Report.xlsx");
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>ESP32 Sensor Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family: Arial;
+background:#f4f6f9;
+text-align:center;
+}
+
+canvas{
+width:80%;
+max-width:600px;
+margin:30px auto;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Smart Sensor Dashboard</h1>
+
+<h3>Temperature</h3>
+<canvas id="tempChart"></canvas>
+
+<h3>Humidity</h3>
+<canvas id="humChart"></canvas>
+
+<h3>Gas</h3>
+<canvas id="gasChart"></canvas>
+
+<script>
+
+let tempData=[];
+let humData=[];
+let gasData=[];
+let labels=[];
+
+const tempChart = new Chart(document.getElementById("tempChart"),{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:"Temperature",
+data:tempData,
+borderWidth:2
+}]
+}
+});
+
+const humChart = new Chart(document.getElementById("humChart"),{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:"Humidity",
+data:humData,
+borderWidth:2
+}]
+}
+});
+
+const gasChart = new Chart(document.getElementById("gasChart"),{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:"Gas",
+data:gasData,
+borderWidth:2
+}]
+}
+});
+
+async function getData(){
+
+// Replace with your API
+const url="YOUR_GOOGLE_SCRIPT_URL";
+
+const response=await fetch(url);
+const data=await response.text();
+
+}
+
+function updateCharts(){
+
+let temp=Math.floor(Math.random()*10)+25;
+let hum=Math.floor(Math.random()*20)+60;
+let gas=Math.floor(Math.random()*100)+200;
+
+let time=new Date().toLocaleTimeString();
+
+labels.push(time);
+tempData.push(temp);
+humData.push(hum);
+gasData.push(gas);
+
+tempChart.update();
+humChart.update();
+gasChart.update();
+
+}
+
+setInterval(updateCharts,5000);
+
+</script>
+
+</body>
+</html>
